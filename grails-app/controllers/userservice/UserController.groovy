@@ -17,7 +17,7 @@ class UserController {
             String itvUserId = providerId.encodeAsMD5()
             
             def itvJson = [itvuid: itvUserId] as JSON
-            def responseJson = [providerId: providerId, itvUserId: itvUserId, href: 'http://itv-test.apigee.net/user/v1/' + itvUserId] as JSON
+            def responseJson = [providerId: providerId, itvUserId: itvUserId, href: 'http://itv-test.apigee.net/user/v1/' + itvUserId, method: 'GET'] as JSON
             
             String method = "accounts.setAccountInfo"
             GSRequest request = new GSRequest(apiKey, secretKey, method)
@@ -28,7 +28,7 @@ class UserController {
 
             def message = [itvUserId: itvUserId, href: 'http://itv-test.apigee.net/user/v1/' + itvUserId, type: 'update'] as JSON
             rabbitSend 'userService', 'userService', message.toString()
-            render responseJson.toString()
+            render text: responseJson.toString(), contentType: 'application/json', encoding:"UTF-8"
     }
 
 
@@ -62,13 +62,17 @@ class UserController {
             newJson.put('email', profileJson.get('email'))
             newJson.put('postcode', profileJson.get('zip'))
             newJson.put('itvUserId', dataJson.get('itvuid'))
-            newJson.put('bardData', 'barbdata')
+            try {
+              newJson.put('barb', dataJson.get('barb'))
+            } catch (JSONException je) {
+              newJson.put('barb', '')
+            }
             newJson.put('subscribe', dataJson.get('subscribe'))
             newJson.put('verified', 'true')
             newJson.put('created', resultDataJson.get('createdTimestamp'))
             newJson.put('lastUpdated', resultDataJson.get('lastUpdatedTimestamp'))
             newJson.put('lastLoggedIn', resultDataJson.get('lastLoginTimestamp'))
-            render newJson.toString()
+            render text: newJson.toString(), contentType: 'application/json', encoding:"UTF-8"
     }
 
     def update() {
@@ -88,24 +92,31 @@ class UserController {
             GSObject dataResponse = response.getData()
 
             //Let create a representation of the existing account
-            //that we can use to d a compare on what come in.
+            //that we can use to do a compare on what sent to us.
             JSONObject returnJson = new JSONObject(dataResponse.toJsonString())
             JSONArray resultsArrayJson = returnJson.getJSONArray('results')
             JSONObject resultDataJson = resultsArrayJson.getJSONObject(0)
             JSONObject dataJson = resultDataJson.getJSONObject('data')
             JSONObject profileJson = resultDataJson.getJSONObject('profile')
             JSONObject newJson = new JSONObject()
+
+//System.out.println('datajson=' + dataJson);
+
             newJson.put('title', dataJson.get('title'))
             newJson.put('firstName', profileJson.get('firstName'))
             newJson.put('lastName', profileJson.get('lastName'))
             newJson.put('email', profileJson.get('email'))
             newJson.put('postcode', profileJson.get('zip'))
             newJson.put('itvUserId', dataJson.get('itvuid'))
-            newJson.put('barbData', 'barbData')
+            try {
+              newJson.put('barb', dataJson.get('barb'))
+            } catch (JSONException je) {
+              newJson.put('barb', '')
+            }
             newJson.put('subscribe', dataJson.get('subscribe'))
             newJson.put('verified', 'true')
 
-            //Ok let update the account
+            //Ok lets update the account
             method = "accounts.setAccountInfo"
             GSRequest requestUpdate = new GSRequest(apiKey, secretKey, method)
             requestUpdate.setParam("uid", resultDataJson.get('UID'))
@@ -126,9 +137,9 @@ class UserController {
             if ( requestJson.get('postcode') != newJson.get('postcode') ) {
               profileRequestJson.put('zip', requestJson.get('postcode'))
             }
- //           if ( requestJson.get('barbData') != newJson.get('barbData') ) {
-  //            request.setParam('barbData', requestJson.get('barbData'))
-   //         }
+            if ( requestJson.get('barb') != newJson.get('barb') ) {
+              dataRequestJson.put("barb", requestJson.get('barb'))
+            }
             if ( requestJson.get('subscribe') != newJson.get('subscribe') ) {
               dataRequestJson.put("subscribe", requestJson.get('subscribe'))
             }
@@ -146,10 +157,8 @@ class UserController {
             response = request.send()
             dataResponse = response.getData()
 
-//System.out.println('dataResponse=' + dataResponse);
-
-            //Let create a representation of the existing account
-            //that we can use to d a compare on what come in.
+            //Lets create a representation of the existing account
+            //to return.
             returnJson = new JSONObject(dataResponse.toJsonString())
             dataJson = returnJson.getJSONObject('data')
             profileJson = returnJson.getJSONObject('profile')
@@ -160,18 +169,22 @@ class UserController {
             newJson.put('email', profileJson.get('email'))
             newJson.put('postcode', profileJson.get('zip'))
             newJson.put('itvUserId', dataJson.get('itvuid'))
-            newJson.put('barb', 'barbData')
+            try {
+              newJson.put('barb', dataJson.get('barb'))
+            } catch (JSONException je) {
+              newJson.put('barb', '')
+            }
             newJson.put('subscribe', dataJson.get('subscribe'))
             newJson.put('verified', 'true')
 
             def message = [itvUserId: itvUserId, href: 'http://itv-test.apigee.net/user/v1/' + itvUserId, type: 'update'] as JSON
             rabbitSend 'userService', 'userService', message.toString()
-            render newJson.toString()
+            render text: newJson.toString(), contentType: 'application/json', encoding:"UTF-8"
     }
 
     def delete() {
             def message = [itvId: itv_id, type: 'delete'] as JSON
             rabbitSend 'userService', 'userService', message.toString()
-            render message.toString()
+            render text: message.toString(), contentType: 'application/json', encoding:"UTF-8"
     }
 }
