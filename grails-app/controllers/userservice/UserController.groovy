@@ -12,12 +12,15 @@ class UserController {
 
     def save() {
 
+
             JSONObject requestJson = request.JSON
+            JSONArray changedValue = new JSONArray()
             String providerId = requestJson.get('providerId')
             String itvUserId = providerId.encodeAsMD5()
+            String changeAgent = request.getHeader('X-Change-Agent');
             
             def itvJson = [itvuid: itvUserId] as JSON
-            def responseJson = [providerId: providerId, itvUserId: itvUserId, href: 'http://itv-test.apigee.net/user/v1/' + itvUserId, method: 'GET'] as JSON
+            def responseJson = [providerId: providerId, itvUserId: itvUserId, href: 'http://test.api.itv.com/user/v1/' + itvUserId, method: 'GET'] as JSON
             
             String method = "accounts.setAccountInfo"
             GSRequest request = new GSRequest(apiKey, secretKey, method)
@@ -26,8 +29,15 @@ class UserController {
             request.setParam("data", dataJson)
             GSResponse response = request.send()
 
-            def message = [itvUserId: itvUserId, href: 'http://itv-test.apigee.net/user/v1/' + itvUserId, type: 'update'] as JSON
-            rabbitSend 'userService', 'userService', message.toString()
+            changedValue.put('itvUserId');
+            JSONObject messageJson = new JSONObject()
+            messageJson.put('itvUserId', itvUserId)
+            messageJson.put('href', 'http://test.api.itv.com/user/v1/' + itvUserId)
+            messageJson.put('type', 'create')
+            messageJson.put('changeAgent', changeAgent)
+            messageJson.put('changedValue', changedValue)
+
+            rabbitSend 'userService', 'userService', messageJson.toString()
             render text: responseJson.toString(), contentType: 'application/json', encoding:"UTF-8"
     }
 
@@ -79,6 +89,8 @@ class UserController {
 
             JSONObject requestJson = request.JSON
             String itvUserId = params.id 
+            String changeAgent = request.getHeader('X-Change-Agent')
+            JSONArray changedValue = new JSONArray()
 
             String query = 'SELECT * FROM accounts WHERE data.itvuid = "' + itvUserId + '"'
 
@@ -124,24 +136,31 @@ class UserController {
             GSObject profileRequestJson = new GSObject()
             if ( requestJson.get('title') != newJson.get('title') ) {
               dataRequestJson.put('title', requestJson.get('title'))
+              changedValue.put('title')
             }
             if ( requestJson.get('firstName') != newJson.get('firstName') ) {
               profileRequestJson.put("firstName", requestJson.get('firstName'))
+              changedValue.put('firstName')
             }
             if ( requestJson.get('lastName') != newJson.get('lastName') ) {
               profileRequestJson.put("lastName", requestJson.get('lastName'))
+              changedValue.put('lastName')
             }
             if ( requestJson.get('email') != newJson.get('email') ) {
               profileRequestJson.put("email", requestJson.get('email'))
+              changedValue.put('email')
             }
             if ( requestJson.get('postcode') != newJson.get('postcode') ) {
               profileRequestJson.put('zip', requestJson.get('postcode'))
+              changedValue.put('postcode')
             }
             if ( requestJson.get('barb') != newJson.get('barb') ) {
               dataRequestJson.put("barb", requestJson.get('barb'))
+              changedValue.put('barb')
             }
             if ( requestJson.get('subscribe') != newJson.get('subscribe') ) {
               dataRequestJson.put("subscribe", requestJson.get('subscribe'))
+              changedValue.put('subscribe')
             }
     
             requestUpdate.setParam("data", dataRequestJson)
@@ -177,8 +196,14 @@ class UserController {
             newJson.put('subscribe', dataJson.get('subscribe'))
             newJson.put('verified', 'true')
 
-            def message = [itvUserId: itvUserId, href: 'http://itv-test.apigee.net/user/v1/' + itvUserId, type: 'update'] as JSON
-            rabbitSend 'userService', 'userService', message.toString()
+            JSONObject messageJson = new JSONObject()
+            messageJson.put('itvUserId', itvUserId)
+            messageJson.put('href', 'http://test.api.itv.com/user/v1/' + itvUserId)
+            messageJson.put('type', 'update')
+            messageJson.put('changeAgent', changeAgent)
+            messageJson.put('changedValue', changedValue)
+
+            rabbitSend 'userService', 'userService', messageJson.toString()
             render text: newJson.toString(), contentType: 'application/json', encoding:"UTF-8"
     }
 
