@@ -85,6 +85,53 @@ class UserController {
             render text: newJson.toString(), contentType: 'application/json', encoding:"UTF-8"
     }
 
+    def index() {
+            // Do a select against gigya and get all users.
+            String query = 'SELECT * FROM accounts'
+            int sysTime = (int) (System.currentTimeMillis() / 1000L)
+            String method = "accounts.search"
+            GSRequest request = new GSRequest(apiKey, secretKey, method)
+            request.setParam("query", query)
+            request.setParam("expTime", sysTime)
+            GSResponse response = request.send()
+            GSObject dataResponse = response.getData()
+            JSONObject returnJson = new JSONObject(dataResponse.toJsonString())
+            JSONArray resultsArrayJson = returnJson.getJSONArray('results')
+
+
+            // Here we process the results and get out the details we want.
+            // We create a new json obj and stuff what we want in there
+            // and then add that to a json array for returning.
+            JSONArray returnArrayJson = new JSONArray()
+            for (int i = 0; i < resultsArrayJson.length(); i++ ) {
+              JSONObject newJson = new JSONObject()
+              JSONObject resultDataJson = resultsArrayJson.getJSONObject(i)
+              JSONObject dataJson = resultDataJson.getJSONObject('data')
+              JSONObject profileJson = resultDataJson.getJSONObject('profile')
+
+              newJson.put('email', profileJson.get('email'))
+              try {
+                newJson.put('firstName', profileJson.get('firstName'))
+              } catch (JSONException je) {
+                newJson.put('firstName', 'ERROR: not set yet')
+              }
+              try {
+                newJson.put('lastName', profileJson.get('lastName'))
+              } catch (JSONException je) {
+                newJson.put('lastName', 'ERROR: not set yet')
+              }
+              try {
+                newJson.put('itvUserId', dataJson.get('itvuid'))
+              } catch (JSONException je) {
+                newJson.put('itvUserId', 'ERROR: not set yet')
+              }
+              returnArrayJson.put(newJson)
+            }
+
+            // Ok lets return the results..
+            render text: returnArrayJson.toString(), contentType: 'application/json', encoding:"UTF-8"
+    }
+
     def update() {
 
             JSONObject requestJson = request.JSON
