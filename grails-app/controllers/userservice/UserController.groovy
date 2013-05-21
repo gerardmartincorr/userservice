@@ -44,6 +44,7 @@ class UserController {
 
     def show() { 
             String query = 'SELECT * FROM accounts WHERE data.itvuid = "' + params.id + '"'
+            String confidenceFilter = request.getHeader('X-Filter');
 
             int sysTime = (int) (System.currentTimeMillis() / 1000L)
 
@@ -69,7 +70,9 @@ class UserController {
             newJson.put('title', dataJson.get('title'))
             newJson.put('firstName', profileJson.get('firstName'))
             newJson.put('lastName', profileJson.get('lastName'))
-            newJson.put('email', profileJson.get('email'))
+            if (confidenceFilter == 'confidential') {
+              newJson.put('email', profileJson.get('email'))
+            }
             newJson.put('postcode', profileJson.get('zip'))
             newJson.put('itvUserId', dataJson.get('itvuid'))
             try {
@@ -137,6 +140,7 @@ class UserController {
             JSONObject requestJson = request.JSON
             String itvUserId = params.id 
             String changeAgent = request.getHeader('X-Change-Agent')
+            String confidenceFilter = request.getHeader('X-Filter');
             JSONArray changedValue = new JSONArray()
 
             String query = 'SELECT * FROM accounts WHERE data.itvuid = "' + itvUserId + '"'
@@ -164,7 +168,9 @@ class UserController {
             newJson.put('title', dataJson.get('title'))
             newJson.put('firstName', profileJson.get('firstName'))
             newJson.put('lastName', profileJson.get('lastName'))
-            newJson.put('email', profileJson.get('email'))
+            if (confidenceFilter == 'confidential') {
+              newJson.put('email', profileJson.get('email'))
+            }
             newJson.put('postcode', profileJson.get('zip'))
             newJson.put('itvUserId', dataJson.get('itvuid'))
             try {
@@ -193,9 +199,11 @@ class UserController {
               profileRequestJson.put("lastName", requestJson.get('lastName'))
               changedValue.put('lastName')
             }
-            if ( requestJson.get('email') != newJson.get('email') ) {
-              profileRequestJson.put("email", requestJson.get('email'))
-              changedValue.put('email')
+            if (confidenceFilter == 'confidential') {
+              if ( requestJson.get('email') != newJson.get('email') ) {
+                profileRequestJson.put("email", requestJson.get('email'))
+                changedValue.put('email')
+              }
             }
             if ( requestJson.get('postcode') != newJson.get('postcode') ) {
               profileRequestJson.put('zip', requestJson.get('postcode'))
@@ -232,7 +240,9 @@ class UserController {
             newJson.put('title', dataJson.get('title'))
             newJson.put('firstName', profileJson.get('firstName'))
             newJson.put('lastName', profileJson.get('lastName'))
-            newJson.put('email', profileJson.get('email'))
+            if (confidenceFilter == 'confidential') {
+              newJson.put('email', profileJson.get('email'))
+            }
             newJson.put('postcode', profileJson.get('zip'))
             newJson.put('itvUserId', dataJson.get('itvuid'))
             try {
